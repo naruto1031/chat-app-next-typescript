@@ -31,21 +31,26 @@ interface SubmitContents {
 }
 
 export const getStaticProps: GetStaticProps<HomeProps> = async () => {
-  const data = await client.get<ChatListResponse>({
-    endpoint: 'chat',
-  }).then((res) => {
-    return res.contents.reverse();
-  });
+  try {
+    const res = await client.get<ChatListResponse>({ endpoint: 'chat' });
+    const contents = res.contents.reverse();
+    return {
+      props: {
+        chat: contents,
+      },
+    };
 
-  return {
-    props: {
-      chat: data,
-    },
-  };
-};
+  } catch (error) {
+    console.error(error);
+    return {
+      props: {
+        chat: [],
+      },
+    };
+  }
+}
 
 const Chat: FC<{ chat_elem: Chat }> = ({ chat_elem }) => {
-
   return (
     <>
       <li key={chat_elem.id} style={{ listStyle: "none" }}>
@@ -60,6 +65,7 @@ const Chat: FC<{ chat_elem: Chat }> = ({ chat_elem }) => {
     </>
   )
 }
+
 
 const Home: NextPage<HomeProps> = ({ chat }) => {
   const [chat_contents, setChat] = useState<Chat[]>(chat);
@@ -76,13 +82,13 @@ const Home: NextPage<HomeProps> = ({ chat }) => {
     return () => clearInterval(intervalId)
   }, []);
 
-  const [userName, setName] = useState("");
+  const [userName, setName] = useState<string>("");
 
   const changeName = (e: React.ChangeEvent<HTMLInputElement>) => {
     setName(e.target.value);
   }
 
-  const [inputContents, setContents] = useState("")
+  const [inputContents, setContents] = useState<string>("")
 
   const changefield = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setContents(e.target.value);
@@ -114,7 +120,7 @@ const Home: NextPage<HomeProps> = ({ chat }) => {
         console.error(res.data);
       }
     } catch (error) {
-      console.error(error)
+      console.error(error);
     }
     setName("");
     setContents("");
@@ -127,7 +133,7 @@ const Home: NextPage<HomeProps> = ({ chat }) => {
           <Chat key={chat_content.id} chat_elem={chat_content} />
         ))}
       </ul>
-      <form action="" method="post" onSubmit={(e) => { contentSubmit(e) }} >
+      <form method="post" action="/" onSubmit={(e) => { contentSubmit(e) }} >
         <div className="user-name">
           <h3>name</h3>
           <input type="text" value={userName} name="name" id="name" onChange={(e) => { changeName(e) }} required />
