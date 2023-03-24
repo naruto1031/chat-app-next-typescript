@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { FC, useEffect, useState } from 'react';
 import { GetStaticProps, NextPage } from 'next';
 import { client } from '../../libs/client';
 
-type Chat = {
+interface Chat {
   id: string;
   createdAt: string;
   updatedAt: string;
@@ -10,28 +10,25 @@ type Chat = {
   revisedAt: string;
   use_name: string;
   chat_content: string;
-};
+}
 
-type ChatProps = {
+interface HomeProps {
   chat: Chat[];
-};
+}
 
-type ChatListResponse = {
+interface ChatListResponse {
   contents: Chat[];
   totalCount: number;
   offset: number;
   limit: number;
-};
+}
 
-export const getStaticProps: GetStaticProps<ChatProps> = async () => {
-  const data: Chat[] = await client.get<ChatListResponse>({
+export const getStaticProps: GetStaticProps<HomeProps> = async () => {
+  const data = await client.get<ChatListResponse>({
     endpoint: 'chat',
   }).then((res) => {
-    return res.contents;
+    return res.contents.reverse();
   });
-
-  // 逆順に並び替え
-  data.reverse();
 
   return {
     props: {
@@ -40,24 +37,43 @@ export const getStaticProps: GetStaticProps<ChatProps> = async () => {
   };
 };
 
-const Home: NextPage<ChatProps> = ({ chat }) => {
+const Chat: FC<{ chat: Chat }> = ({ chat }) => {
+
+  return (
+    <>
+      <li key={chat.id} style={{ listStyle: "none" }}>
+        <div className='user-name'>
+          {chat.use_name}
+        </div>
+        <div className="chat-content">
+          {chat.chat_content}
+        </div>
+      </li>
+      <hr />
+    </>
+  )
+}
+
+const Home: NextPage<HomeProps> = ({ chat }) => {
+  const [chat_contents, setChat] = useState<Chat[]>(chat);
+
+  useEffect(() => {
+    const intervalId = setInterval(async () => {
+      const res = await client.get<ChatListResponse>({
+        endpoint: 'chat',
+      })
+      if (res.contents) {
+        setChat(res.contents.reverse())
+      }
+    }, 10000)
+    return () => clearInterval(intervalId)
+  }, [])
+
   return (
     <main>
       <ul>
-        {chat.map((chat: Chat) => (
-          <React.Fragment key={chat.id}>
-            <li key={chat.id} style={{listStyle:"none"}}>
-              <div className='user-name'>
-                {chat.use_name}
-              </div>
-              <div>
-              </div>
-              <div className='chat-content'>
-                {chat.chat_content}
-              </div>
-            </li>
-            <hr />
-          </React.Fragment>
+        {chat_contents.map((chat_content: Chat) => (
+          <Chat key={chat_content.id} chat={chat_content} />
         ))}
       </ul>
       <form action="" method="post">
